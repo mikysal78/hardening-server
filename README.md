@@ -169,10 +169,16 @@ Note:
   quindi una volta sola per host (marker `/root/.ispmail_installed`).
 - Le password generate a fine installazione (DB `mailadmin`/`mailserver`,
   interfaccia web di rspamd) vengono stampate dallo script **solo una
-  volta** e non sono recuperabili altrimenti: il ruolo le salva in un log
-  root-only sul server (`/root/ispmail-install-<fqdn>.log`, permessi 600).
-  Copiale subito in un password manager e poi cancella il file, es.
-  `shred -u /root/ispmail-install-<fqdn>.log`.
+  volta** e non sono recuperabili altrimenti. Il ruolo:
+  1. mostra un riepilogo finale nell'output di `ansible-playbook` con URL
+     di Roundcube/rspamd e tutte le password generate;
+  2. lo salva anche sul **controller Ansible** (non sul mail server, di
+     norma più esposto) in `secrets/<fqdn>.log`, permessi 0600;
+  3. rimuove la copia dal server.
+
+  `secrets/` è in `.gitignore` — copia comunque il contenuto in un
+  password manager e poi cancella anche il file locale, es.
+  `shred -u secrets/<fqdn>.log`.
 - Lo script gira come root e scarica codice da un dominio di terze parti:
   è affidabile (guida ISPmail nota e mantenuta) ma, trattandosi comunque
   di uno script esterno eseguito con privilegi root, è buona norma

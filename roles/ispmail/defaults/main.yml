@@ -9,6 +9,13 @@ ispmail_script_path: "/usr/local/sbin/ispmail.sh"
 ispmail_marker_file: "/root/.ispmail_installed"
 ispmail_log_file: "/root/ispmail-install-{{ ispmail_fqdn }}.log"
 
+# Le password generate da ispmail.sh (DB mailadmin/mailserver, rspamd webui)
+# vengono stampate una sola volta e non sono più recuperabili altrimenti: il
+# ruolo scarica il log dal server sul controller Ansible (di norma meno
+# esposto del mail server) in questa directory locale, poi lo cancella dal
+# server. La directory NON deve mai finire in un repo pubblico.
+ispmail_local_secrets_dir: "{{ playbook_dir }}/secrets"
+
 # --- Certificato TLS ---------------------------------------------------
 # ispmail.sh usa ovunque nel codice il path standard di certbot
 # (/etc/letsencrypt/live/<fqdn>/{fullchain,privkey}.pem) e chiama

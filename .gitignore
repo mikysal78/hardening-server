@@ -10,3 +10,7 @@ group_vars/mailservers.yml
 group_vars/dbservers.yml
 host_vars/
 inventory/hosts.ini
+
+# Password generate da ispmail.sh, scaricate dal ruolo ispmail sul
+# controller (contengono credenziali reali in chiaro)
+secrets/

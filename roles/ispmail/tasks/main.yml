@@ -121,11 +121,56 @@
     creates: "{{ ispmail_marker_file }}"
   register: ispmail_run
 
-- name: Mostra dove sono le password generate (NON stampate qui per non finire nei log Ansible)
+- name: Crea la directory locale per i segreti generati da ispmail.sh
+  ansible.builtin.file:
+    path: "{{ ispmail_local_secrets_dir }}"
+    state: directory
+    mode: "0700"
+  delegate_to: localhost
+  become: false
+  when: ispmail_run is changed
+
+# Scarica il log (password DB mailadmin/mailserver + rspamd webui, stampate
+# dallo script UNA sola volta) sul controller Ansible, che di norma è meno
+# esposto del mail server stesso, e rimuove la copia dal server.
+- name: Scarica sul controller il log con le password generate
+  ansible.builtin.fetch:
+    src: "{{ ispmail_log_file }}"
+    dest: "{{ ispmail_local_secrets_dir }}/{{ ispmail_fqdn }}.log"
+    flat: true
+  when: ispmail_run is changed
+
+# fetch non garantisce permessi restrittivi sul file scaricato (segue lo
+# umask del controller): forziamo 0600 visto che contiene password in chiaro.
+- name: Restringi i permessi del log scaricato in locale
+  ansible.builtin.file:
+    path: "{{ ispmail_local_secrets_dir }}/{{ ispmail_fqdn }}.log"
+    mode: "0600"
+  delegate_to: localhost
+  become: false
+  when: ispmail_run is changed
+
+- name: Rimuovi la copia del log dal server (resta solo sul controller)
+  ansible.builtin.file:
+    path: "{{ ispmail_log_file }}"
+    state: absent
+  when: ispmail_run is changed
+
+- name: Estrai il riepilogo finale (URL e password) dall'output di ispmail.sh
+  ansible.builtin.set_fact:
+    ispmail_summary: "{{ ispmail_run.stdout.split('PLEASE NOTE:')[1] | trim }}"
+  when: ispmail_run is changed and "'PLEASE NOTE:' in ispmail_run.stdout"
+
+- name: Riepilogo finale - link di accesso e password generate
+  ansible.builtin.debug:
+    msg: "{{ ispmail_summary.split('\n') }}"
+  when: ispmail_summary is defined
+
+- name: Dove trovare di nuovo queste informazioni
   ansible.builtin.debug:
     msg: >
-      Installazione completata. Le password generate (DB mailadmin/mailserver,
-      interfaccia web di rspamd) sono nel file {{ ispmail_log_file }} su questo
-      host, leggibile solo da root (chmod 600). Copiale subito in un password
-      manager e poi elimina il file, es.: "shred -u {{ ispmail_log_file }}".
+      Questo riepilogo è stato salvato anche sul controller Ansible in
+      {{ ispmail_local_secrets_dir }}/{{ ispmail_fqdn }}.log (permessi 0600)
+      ed è stato rimosso dal server. Copialo in un password manager e poi
+      cancella anche quel file locale.
   when: ispmail_run is changed
