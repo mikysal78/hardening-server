@@ -1,0 +1,41 @@
+<?php
+// File generato da Ansible (ruolo ispmail_admin) - non modificare a mano,
+// le modifiche vengono sovrascritte al prossimo run del playbook.
+/**
+** DATABASE ACCESS
+**/
+define('IMA_CFG_DB_HOST',     '{{ ispmail_admin_db_host }}');
+define('IMA_CFG_DB_PORT',     '{{ ispmail_admin_db_port }}');
+define('IMA_CFG_DB_SOCKET',   null);
+
+define('IMA_CFG_DB_USER',     '{{ ispmail_admin_db_user }}');
+define('IMA_CFG_DB_PASSWORD', '{{ ispmail_admin_db_password }}');
+define('IMA_CFG_DB_DATABASE', 'mailserver');
+
+/**
+** ACCESS CONTROL
+** Solo amministratore: il pannello è comunque raggiungibile solo dalle
+** reti di gestione (vedi Require ip nel vhost Apache).
+**/
+define('IMA_CFG_LOGIN', IMA_LOGINTYPE_ADM);
+
+define('IMA_CFG_ADM_USER',  '{{ ispmail_admin_login_user }}');
+define('IMA_CFG_ADM_PASS',  '{{ ispmail_admin_login_password }}');
+
+/**
+** PASSWORD HASHES
+**/
+define('IMA_CFG_USE_BCRYPT_HASHES', true);
+
+/**
+** Enable Quotas
+**/
+define('IMA_CFG_USE_QUOTAS', {{ ispmail_admin_use_quotas | lower }});
+define('IMA_CFG_DEFAULT_QUOTA', 0);
+define('IMA_CFG_QUOTA_STEP', 1073741824);
+
+/**
+** Enable Blacklist (richiede la tabella blacklist_email, vedi README.txt
+** del progetto se la abiliti: non viene creata automaticamente da questo ruolo)
+**/
+define('IMA_SUPPORT_BLACKLIST', {{ ispmail_admin_support_blacklist | lower }});

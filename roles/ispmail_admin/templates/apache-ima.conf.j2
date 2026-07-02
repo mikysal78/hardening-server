@@ -1,0 +1,16 @@
+{{ ansible_managed | comment }}
+# ISPmail Admin, raggiungibile solo dalle reti di gestione: 80/443 restano
+# aperti pubblicamente per Roundcube/rspamd-ui, questo blocco applica una
+# restrizione aggiuntiva solo per questo path, su tutti i vhost.
+
+Alias {{ ispmail_admin_url_path }} {{ ispmail_admin_install_dir }}
+
+<Directory "{{ ispmail_admin_install_dir }}">
+    Options -Indexes -FollowSymLinks
+    AllowOverride None
+    Require ip {{ ispmail_admin_allow_networks | join(' ') }}
+</Directory>
+
+<Directory "{{ ispmail_admin_install_dir }}/cfg">
+    Require all denied
+</Directory>

@@ -23,6 +23,7 @@ roles/
   mailserver/  Postfix + Dovecot: TLS obbligatorio, anti-relay, SASL
   database/    MariaDB: bind locale, niente utenti anonimi/test/root remoto
   ispmail/     scarica ed esegue ispmail.sh (usato da ispmail.yml)
+  ispmail_admin/ pannello web opzionale per domini/mailbox/alias (usato da ispmail.yml)
 ```
 
 ## Setup iniziale (file privati)
@@ -187,6 +188,38 @@ Note:
   di uno script esterno eseguito con privilegi root, è buona norma
   rivederlo (`cat /usr/local/sbin/ispmail.sh` sul server dopo il primo
   download) prima di lanciare `ispmail.yml` su un server di produzione.
+
+### Gestire domini/mailbox/alias: ISPmail Admin (opzionale)
+
+`ispmail_admin_enabled: true` installa anche [ISPmail
+Admin](http://ima.jungclaussen.com/), un pannello PHP che gestisce
+direttamente le tabelle `virtual_domains`/`virtual_users`/`virtual_aliases`
+create da `ispmail.sh` (aggiungere domini, caselle, alias, redirect —
+alternativa a farlo via SQL diretto).
+
+**Compromessi da conoscere prima di attivarlo**, perché non è un progetto
+al livello di garanzie di `ispmail.sh`/workaround.org:
+- si scarica **solo via HTTP** (`http://ima.jungclaussen.com`), **senza
+  checksum pubblicati** — nessun modo di verificare l'integrità del download;
+- richiede un utente MariaDB con **scrittura** (SELECT/UPDATE/INSERT/DELETE)
+  su tutto il database `mailserver` — più ampio del semplice utente
+  `mailserver` in sola lettura creato da ispmail.sh.
+
+Per questo il ruolo `ispmail_admin`, per difendersi:
+- espone il pannello su `https://<ispmail_fqdn>/ima` ma lo restringe via
+  Apache (`Require ip`) solo alle reti in `ispmail_admin_allow_networks`
+  (default: le stesse reti già whitelistate su fail2ban) — le porte 80/443
+  restano pubbliche per Roundcube/rspamd-ui, ma quel path specifico no;
+- genera e salva da solo utente/password admin e password del DB
+  sul controller Ansible in `secrets/<fqdn>-ima-admin.txt` e
+  `secrets/<fqdn>-ima-db.txt` (stessa cartella, stesso trattamento delle
+  password di ispmail.sh — copiale in un password manager);
+- crea l'utente DB con permessi limitati alla sola tabella `mailserver`,
+  non `ALL PRIVILEGES`.
+
+Se preferisci non installarlo, i domini/mailbox/alias restano comunque
+gestibili a mano via SQL sul database `mailserver` (stesso schema che usa
+ISPmail Admin: `virtual_domains`, `virtual_users`, `virtual_aliases`).
 
 ## Whitelist fail2ban (IP/reti mai bannati)
 

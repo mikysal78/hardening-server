@@ -26,9 +26,16 @@
 # una volta sola per host (marker /root/.ispmail_installed). Le password
 # generate a fine installazione finiscono in un log locale sul server, da
 # copiare subito in un posto sicuro e poi eliminare (vedi output del play).
+#
+# Opzionale: ispmail_admin_enabled=true installa anche ISPmail Admin
+# (pannello web per gestire domini/mailbox/alias), raggiungibile solo dalle
+# reti indicate in ispmail_admin_allow_networks. Vedi README per i
+# compromessi di sicurezza del progetto prima di attivarlo.
 # =============================================================================
 - name: Installa il mail server con ispmail.sh
   hosts: mailservers
   become: true
   roles:
     - ispmail
+    - role: ispmail_admin
+      when: ispmail_admin_enabled | default(false)
