@@ -1,0 +1,10 @@
+---
+# FQDN pubblico del mail server (es. "mail.example.com"). Obbligatorio:
+# ci deve puntare il DNS pubblico ed è per questo dominio che ispmail.sh
+# richiede il certificato Let's Encrypt e configura Postfix/Dovecot/Roundcube.
+ispmail_fqdn: ""
+
+ispmail_script_url: "https://workaround.org/ispmail.sh"
+ispmail_script_path: "/usr/local/sbin/ispmail.sh"
+ispmail_marker_file: "/root/.ispmail_installed"
+ispmail_log_file: "/root/ispmail-install-{{ ispmail_fqdn }}.log"

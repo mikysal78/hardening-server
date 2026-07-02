@@ -1,0 +1,85 @@
+---
+- name: Verifica che sia stato indicato ispmail_fqdn
+  ansible.builtin.assert:
+    that:
+      - ispmail_fqdn is defined
+      - ispmail_fqdn | length > 0
+    fail_msg: >
+      Devi impostare ispmail_fqdn (es. "mail.example.com"): è l'FQDN pubblico per
+      cui ispmail.sh richiede il certificato Let's Encrypt e configura
+      Postfix/Dovecot/Roundcube. Passalo con -e ispmail_fqdn=... oppure
+      valorizzalo in group_vars/mailservers.yml o host_vars/<host>.yml.
+    quiet: true
+
+- name: Verifica che il ruolo webserver (nginx) di questo repo non sia attivo
+  ansible.builtin.assert:
+    that:
+      - not (role_webserver | default(false))
+    fail_msg: >
+      role_webserver=true installerebbe nginx sulle porte 80/443, in conflitto
+      con Apache installato da ispmail.sh su questo stesso host. Disattivalo
+      per gli host in [mailservers] prima di procedere.
+    quiet: true
+
+- name: Verifica la risoluzione DNS pubblica dell'FQDN (richiesta da certbot)
+  ansible.builtin.command: "getent hosts {{ ispmail_fqdn }}"
+  register: ispmail_dns_check
+  changed_when: false
+  failed_when: false
+
+- name: Avvisa se l'FQDN non risolve da questo host
+  ansible.builtin.debug:
+    msg: >
+      ATTENZIONE: {{ ispmail_fqdn }} non risolve da questo host. ispmail.sh
+      chiamerà "certbot --apache" per ottenere un certificato Let's Encrypt:
+      senza un DNS pubblico corretto e le porte 80/443 raggiungibili da
+      internet (vedi firewall_allowed_tcp_ports), quel passaggio fallirà.
+  when: ispmail_dns_check.rc != 0
+
+# ispmail.sh configura Postfix in modo incrementale (postconf) ma non ne
+# genera main.cf da zero: si aspetta un pacchetto postfix già preconfigurato
+# in modalità "Internet Site", esattamente come fa roles/mailserver/tasks/main.yml
+- name: Preconfigura debconf per un'installazione non interattiva di postfix
+  ansible.builtin.debconf:
+    name: postfix
+    question: "{{ item.q }}"
+    value: "{{ item.v }}"
+    vtype: "{{ item.t }}"
+  loop:
+    - { q: "postfix/main_mailer_type", v: "Internet Site", t: "select" }
+    - { q: "postfix/mailname", v: "{{ ispmail_fqdn }}", t: "string" }
+
+- name: Installa il pacchetto postfix di base (preconfigurato via debconf sopra)
+  ansible.builtin.apt:
+    name: postfix
+    state: present
+    update_cache: true
+
+- name: Scarica lo script di installazione ispmail.sh
+  ansible.builtin.get_url:
+    url: "{{ ispmail_script_url }}"
+    dest: "{{ ispmail_script_path }}"
+    mode: "0700"
+    owner: root
+    group: root
+    force: true
+
+- name: Esegui ispmail.sh (una sola volta - installa un intero mail server, richiede diversi minuti)
+  ansible.builtin.shell: |
+    set -o pipefail
+    umask 077
+    echo | {{ ispmail_script_path }} -f {{ ispmail_fqdn }} 2>&1 | tee {{ ispmail_log_file }}
+    touch {{ ispmail_marker_file }}
+  args:
+    executable: /bin/bash
+    creates: "{{ ispmail_marker_file }}"
+  register: ispmail_run
+
+- name: Mostra dove sono le password generate (NON stampate qui per non finire nei log Ansible)
+  ansible.builtin.debug:
+    msg: >
+      Installazione completata. Le password generate (DB mailadmin/mailserver,
+      interfaccia web di rspamd) sono nel file {{ ispmail_log_file }} su questo
+      host, leggibile solo da root (chmod 600). Copiale subito in un password
+      manager e poi elimina il file, es.: "shred -u {{ ispmail_log_file }}".
+  when: ispmail_run is changed

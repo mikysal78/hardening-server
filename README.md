@@ -8,6 +8,7 @@ Dovecot) e database (MariaDB).
 
 ```
 playbook.yml                       # orchestrazione: common -> firewall/fail2ban -> ruoli di servizio
+ispmail.yml                        # playbook standalone: installa Postfix+Dovecot+Roundcube via ispmail.sh
 group_vars/all.yml.example         # tutte le opzioni di hardening, con commenti (copia -> all.yml)
 group_vars/webservers.yml.example  # role_webserver: true per il gruppo [webservers]
 group_vars/mailservers.yml.example # role_mailserver: true per il gruppo [mailservers]
@@ -21,6 +22,7 @@ roles/
   webserver/   nginx: header di sicurezza, TLS moderno, no listing
   mailserver/  Postfix + Dovecot: TLS obbligatorio, anti-relay, SASL
   database/    MariaDB: bind locale, niente utenti anonimi/test/root remoto
+  ispmail/     scarica ed esegue ispmail.sh (usato da ispmail.yml)
 ```
 
 ## Setup iniziale (file privati)
@@ -111,21 +113,45 @@ forzare i flag per singolo host in `host_vars/<nome-host>.yml`.
 Il ruolo `firewall` legge questi stessi flag per aprire automaticamente
 le porte giuste (80/443 per il web, 25/465/587/143/993/995 per la mail).
 
-### Installare la posta con uno script esterno (es. ispmail.sh)
+### Installare la posta con ispmail.sh (ispmail.yml)
 
-Se preferisci installare Postfix/Dovecot con una guida/script esterno
-(es. [ispmail.sh](https://workaround.org/ispmail.sh) di Christoph Haas,
-che gestisce anche MySQL, Rspamd e i certificati TLS via certbot) invece
-del ruolo `mailserver` di questo playbook, imposta in `group_vars/all.yml`:
+In alternativa al ruolo `mailserver` di questo playbook, `ispmail.yml` è
+un playbook standalone che scarica ed esegue
+[ispmail.sh](https://workaround.org/ispmail.sh) di Christoph Haas: installa
+Postfix + Dovecot + Roundcube + Rspamd + MariaDB con TLS via Let's Encrypt,
+seguendo la guida [ISPmail](https://workaround.org).
 
-```yaml
-role_mailserver: true              # firewall/fail2ban aprono comunque le porte giuste
-mailserver_manage_service: false   # il ruolo Ansible "mailserver" non viene eseguito
-```
+1. In `group_vars/all.yml` (o `group_vars/mailservers.yml`) imposta:
+   ```yaml
+   role_mailserver: true              # firewall/fail2ban aprono comunque le porte mail
+   mailserver_manage_service: false   # il ruolo Ansible "mailserver" di questo repo NON gira
+   firewall_allowed_tcp_ports: [80, 443]   # richieste da certbot e da Roundcube/rspamd-ui (Apache)
+   ```
+   `role_webserver` deve restare `false` su questi host: ispmail.sh installa
+   Apache, non nginx, e i due andrebbero in conflitto sulle porte 80/443.
+2. Assicurati che il DNS pubblico dell'FQDN scelto punti già a questo
+   server (richiesto dalla validazione HTTP-01 di Let's Encrypt).
+3. Esegui prima `playbook.yml` (hardening + firewall), poi:
+   ```bash
+   ansible-playbook ispmail.yml -e ispmail_fqdn=mail.tuodominio.it
+   ```
+   (oppure valorizza `ispmail_fqdn` in `group_vars/mailservers.yml`/`host_vars`).
 
-In questo modo l'host riceve comunque l'hardening di base, il firewall
-e fail2ban configurati per un mail server, ma Postfix/Dovecot/TLS li
-installi e gestisci tu con lo script esterno, senza interferenze.
+Note:
+- ispmail.sh installa un intero mail server in un solo colpo e non è
+  pensato per essere rieseguito da zero: il ruolo `ispmail` lo esegue
+  quindi una volta sola per host (marker `/root/.ispmail_installed`).
+- Le password generate a fine installazione (DB `mailadmin`/`mailserver`,
+  interfaccia web di rspamd) vengono stampate dallo script **solo una
+  volta** e non sono recuperabili altrimenti: il ruolo le salva in un log
+  root-only sul server (`/root/ispmail-install-<fqdn>.log`, permessi 600).
+  Copiale subito in un password manager e poi cancella il file, es.
+  `shred -u /root/ispmail-install-<fqdn>.log`.
+- Lo script gira come root e scarica codice da un dominio di terze parti:
+  è affidabile (guida ISPmail nota e mantenuta) ma, trattandosi comunque
+  di uno script esterno eseguito con privilegi root, è buona norma
+  rivederlo (`cat /usr/local/sbin/ispmail.sh` sul server dopo il primo
+  download) prima di lanciare `ispmail.yml` su un server di produzione.
 
 ## Whitelist fail2ban (IP/reti mai bannati)
 

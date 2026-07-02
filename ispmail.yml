@@ -1,0 +1,34 @@
+---
+# =============================================================================
+# Installa un mail server completo (Postfix + Dovecot + Roundcube + Rspamd +
+# MariaDB + TLS via Let's Encrypt) usando lo script ufficiale ispmail.sh
+# della guida ISPmail di Christoph Haas: https://workaround.org/ispmail.sh
+#
+# Prerequisiti:
+#   - Debian 13 (trixie); esegui prima playbook.yml sull'host per
+#     l'hardening di base e il firewall.
+#   - group_vars/all.yml: role_mailserver=true (apre le porte mail nel
+#     firewall) e mailserver_manage_service=false (il ruolo "mailserver"
+#     di questo repo non configura Postfix/Dovecot al posto di ispmail.sh).
+#   - Il DNS di ispmail_fqdn deve risolvere pubblicamente verso questo host
+#     e le porte 80/443 devono essere raggiungibili da internet (richieste
+#     da certbot e da Roundcube/rspamd-ui): aggiungile a
+#     firewall_allowed_tcp_ports nel tuo host_vars/group_vars.
+#   - role_webserver deve restare false su questi host: installa Apache,
+#     non nginx, e i due server web andrebbero in conflitto sulla 80/443.
+#
+# Uso:
+#   ansible-playbook ispmail.yml -e ispmail_fqdn=mail.tuodominio.it
+# (oppure imposta ispmail_fqdn in group_vars/mailservers.yml/host_vars)
+#
+# Nota: ispmail.sh installa un intero mail server in un colpo solo e non è
+# pensato per essere rieseguito da zero; questo playbook lo esegue quindi
+# una volta sola per host (marker /root/.ispmail_installed). Le password
+# generate a fine installazione finiscono in un log locale sul server, da
+# copiare subito in un posto sicuro e poi eliminare (vedi output del play).
+# =============================================================================
+- name: Installa il mail server con ispmail.sh
+  hosts: mailservers
+  become: true
+  roles:
+    - ispmail
