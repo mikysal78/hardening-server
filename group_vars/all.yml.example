@@ -123,6 +123,13 @@ webserver_hsts: true
 
 # --- Mail server (Postfix + Dovecot) ----------------------------------------
 role_mailserver: false
+# Se preferisci installare la posta con uno script/guida esterna (es.
+# https://workaround.org/ispmail.sh) invece del ruolo mailserver di questo
+# playbook, lascia role_mailserver=true (per far aprire le porte giuste a
+# firewall/fail2ban) e metti mailserver_manage_service=false per saltare
+# l'esecuzione del ruolo Ansible "mailserver" (che scrive main.cf/master.cf/
+# dovecot config).
+mailserver_manage_service: true
 mail_hostname: "mail.example.com"
 mail_domain: "example.com"
 mail_networks_trusted: "127.0.0.0/8 [::1]/128"

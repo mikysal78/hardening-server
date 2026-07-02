@@ -30,7 +30,9 @@
   become: true
   roles:
     - role: mailserver
-      when: role_mailserver | default(false)
+      when:
+        - role_mailserver | default(false)
+        - mailserver_manage_service | default(true)
 
 - name: Database server (MariaDB)
   hosts: dbservers

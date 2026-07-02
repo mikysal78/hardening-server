@@ -109,7 +109,23 @@ mail01 ansible_host=203.0.113.11
 forzare i flag per singolo host in `host_vars/<nome-host>.yml`.
 
 Il ruolo `firewall` legge questi stessi flag per aprire automaticamente
-le porte giuste (80/443 per il web, 25/587/465/143/993 per la mail).
+le porte giuste (80/443 per il web, 25/465/587/143/993/995 per la mail).
+
+### Installare la posta con uno script esterno (es. ispmail.sh)
+
+Se preferisci installare Postfix/Dovecot con una guida/script esterno
+(es. [ispmail.sh](https://workaround.org/ispmail.sh) di Christoph Haas,
+che gestisce anche MySQL, Rspamd e i certificati TLS via certbot) invece
+del ruolo `mailserver` di questo playbook, imposta in `group_vars/all.yml`:
+
+```yaml
+role_mailserver: true              # firewall/fail2ban aprono comunque le porte giuste
+mailserver_manage_service: false   # il ruolo Ansible "mailserver" non viene eseguito
+```
+
+In questo modo l'host riceve comunque l'hardening di base, il firewall
+e fail2ban configurati per un mail server, ma Postfix/Dovecot/TLS li
+installi e gestisci tu con lo script esterno, senza interferenze.
 
 ## Whitelist fail2ban (IP/reti mai bannati)
 
