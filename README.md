@@ -7,12 +7,12 @@ Dovecot) e database (MariaDB).
 ## Struttura
 
 ```
-playbook.yml              # orchestrazione: common -> firewall/fail2ban -> ruoli di servizio
-group_vars/all.yml         # tutte le opzioni di hardening, con commenti
-group_vars/webservers.yml  # role_webserver: true per il gruppo [webservers]
-group_vars/mailservers.yml # role_mailserver: true per il gruppo [mailservers]
-group_vars/dbservers.yml   # role_database: true per il gruppo [dbservers]
-inventory/hosts.ini         # inventario di esempio
+playbook.yml                       # orchestrazione: common -> firewall/fail2ban -> ruoli di servizio
+group_vars/all.yml.example         # tutte le opzioni di hardening, con commenti (copia -> all.yml)
+group_vars/webservers.yml.example  # role_webserver: true per il gruppo [webservers]
+group_vars/mailservers.yml.example # role_mailserver: true per il gruppo [mailservers]
+group_vars/dbservers.yml.example   # role_database: true per il gruppo [dbservers]
+inventory/hosts.ini.example         # inventario di esempio
 roles/
   common/      utenti, SSH, sysctl, moduli kernel, PAM, auditd, AppArmor,
                aggiornamenti automatici, NTP, journald, banner legale
@@ -22,6 +22,25 @@ roles/
   mailserver/  Postfix + Dovecot: TLS obbligatorio, anti-relay, SASL
   database/    MariaDB: bind locale, niente utenti anonimi/test/root remoto
 ```
+
+## Setup iniziale (file privati)
+
+I file con i dati reali della tua infrastruttura (chiave pubblica SSH,
+IP/reti whitelistate, domini mail/web, host dell'inventario) sono in
+`.gitignore` e NON vengono committati: nel repo trovi solo i template
+`*.example`. Al primo utilizzo copiali senza suffisso e personalizzali:
+
+```bash
+cp group_vars/all.yml.example group_vars/all.yml
+cp group_vars/webservers.yml.example group_vars/webservers.yml
+cp group_vars/mailservers.yml.example group_vars/mailservers.yml
+cp group_vars/dbservers.yml.example group_vars/dbservers.yml
+cp inventory/hosts.ini.example inventory/hosts.ini
+```
+
+Poi modifica `group_vars/all.yml` (chiave pubblica, whitelist fail2ban,
+domini) e `inventory/hosts.ini` (IP/hostname reali) con i tuoi dati:
+questi file restano solo in locale e non finiscono mai su GitHub.
 
 ## Requisiti
 
