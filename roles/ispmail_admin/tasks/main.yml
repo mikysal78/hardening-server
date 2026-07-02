@@ -12,6 +12,11 @@
       essere coperto dal certificato TLS di ispmail_fqdn - SAN o wildcard).
     quiet: true
 
+- name: Installa la dipendenza Python per i moduli MySQL di Ansible
+  ansible.builtin.apt:
+    name: python3-pymysql
+    state: present
+
 - name: Crea l'utente MariaDB per ISPmail Admin (permessi limitati, non ALL PRIVILEGES)
   community.mysql.mysql_user:
     name: "{{ ispmail_admin_db_user }}"
