@@ -126,8 +126,8 @@ role_mailserver: false
 mail_hostname: "mail.example.com"
 mail_domain: "example.com"
 mail_networks_trusted: "127.0.0.0/8 [::1]/128"
-mail_enable_submission: true         # porta 587 con autenticazione obbligatoria
-mail_enable_pop3: false
+mail_enable_submission: true         # porta 587/465 con autenticazione obbligatoria (SMTP/SMTPS)
+mail_enable_pop3: false               # true = abilita POP3S (995); il POP3 in chiaro (110) resta comunque chiuso a firewall
 
 # --- Database server (MariaDB) ----------------------------------------------
 role_database: false

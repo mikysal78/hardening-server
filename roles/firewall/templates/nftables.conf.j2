@@ -38,14 +38,15 @@ table inet filter {
 {% endif %}
 
 {% if role_mailserver | default(false) %}
-        # Mail server: SMTP, submission, IMAPS, POP3S
+        # Mail server: SMTP (25), SMTPS (465), submission (587), IMAP (143), IMAPS (993)
         tcp dport { 25 } ct state new accept
 {% if mail_enable_submission | default(true) %}
         tcp dport { 587, 465 } ct state new accept
 {% endif %}
         tcp dport { 143, 993 } ct state new accept
 {% if mail_enable_pop3 | default(false) %}
-        tcp dport { 110, 995 } ct state new accept
+        # Solo POP3S (995): il POP3 in chiaro (110) resta chiuso
+        tcp dport { 995 } ct state new accept
 {% endif %}
 {% endif %}
 
