@@ -17,6 +17,17 @@
     name: python3-pymysql
     state: present
 
+# ispmail.sh non la installa (non gli serve): ISPmail Admin la usa in
+# cnvQuotaToHuman() per convertire i byte della quota in formato leggibile
+# (KB/MB/GB). Senza, la pagina "Accounts" muore con un fatal error PHP
+# ("Call to undefined function bcdiv()") non appena elenca almeno un
+# account, con IMA_CFG_USE_QUOTAS=true.
+- name: Installa l'estensione PHP bcmath (serve a ISPmail Admin per le quote)
+  ansible.builtin.apt:
+    name: php-bcmath
+    state: present
+  notify: restart apache
+
 - name: Crea l'utente MariaDB per ISPmail Admin (permessi limitati, non ALL PRIVILEGES)
   community.mysql.mysql_user:
     name: "{{ ispmail_admin_db_user }}"
@@ -88,13 +99,13 @@
     owner: root
     group: root
     mode: "0644"
-  notify: reload apache
+  notify: restart apache
 
 - name: Abilita il vhost Apache di ISPmail Admin
   ansible.builtin.command: a2ensite ispmail-admin
   args:
     creates: /etc/apache2/sites-enabled/ispmail-admin.conf
-  notify: reload apache
+  notify: restart apache
 
 - name: Verifica subito la sintassi di Apache (fail-fast, non aspettare l'handler)
   ansible.builtin.command: apache2ctl configtest

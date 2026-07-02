@@ -1,5 +1,8 @@
 ---
-- name: reload apache
+# Un restart pieno (non un reload) serve quando cambiano le estensioni PHP
+# caricate da mod_php: un reload grazioso non ricarica gli extension .so
+# già mappati nei processi worker.
+- name: restart apache
   ansible.builtin.service:
     name: apache2
-    state: reloaded
+    state: restarted
