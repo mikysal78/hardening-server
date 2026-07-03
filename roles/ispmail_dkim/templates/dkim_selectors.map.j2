@@ -1,0 +1,4 @@
+{{ ansible_managed | comment }}
+{% for d in ispmail_dkim_domains %}
+{{ d.domain }} {{ d.selector }}
+{% endfor %}

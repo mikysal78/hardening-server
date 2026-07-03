@@ -289,6 +289,29 @@ rinnovo del certificato lato `ansible-dns`. Rilancia `ansible-playbook
 una chiamata a questo ruolo nel `reloadcmd`/deploy script di
 `ansible-dns` per quei domini specifici.
 
+### Chiavi DKIM per rspamd
+
+`ispmail.sh` predispone l'infrastruttura DKIM di rspamd (milter verso
+Postfix, path e mappa dei selettori in
+`/etc/rspamd/local.d/dkim_signing.conf`) ma **non genera le chiavi**: è
+un `# TODO: create a key for $FQDN and test it` mai completato nello
+script stesso. Il ruolo `ispmail_dkim` genera la chiave per ogni dominio
+in `ispmail_dkim_domains`:
+
+```yaml
+ispmail_dkim_domains:
+  - domain: "example.com"
+    selector: "mail"
+```
+
+La chiave viene generata **una sola volta** (mai rigenerata ai run
+successivi: rigenerarla invaliderebbe il record DNS già pubblicato). A
+fine run, il playbook mostra per ogni dominio il record DNS TXT esatto
+da pubblicare (`<selector>._domainkey.<dominio>`) — copialo nella zona
+DNS di quel dominio (via `ansible-dns` o a mano). Se lo perdi, lo trovi
+di nuovo sul server in
+`/var/lib/rspamd/dkim/<dominio>.<selettore>.dns.txt`.
+
 ## MX secondario / backup (03-mx-backup.yml, opzionale)
 
 `03-mx-backup.yml` configura un **secondo server**, separato dal mail

@@ -1,0 +1,14 @@
+---
+# Chiavi DKIM per rspamd, per ogni dominio di posta ospitato. ispmail.sh
+# prepara solo l'infrastruttura (milter Postfix<->rspamd, path e
+# selector_map in /etc/rspamd/local.d/dkim_signing.conf) ma NON genera le
+# chiavi da solo (è un TODO non completato nello script stesso): questo
+# ruolo completa il pezzo mancante.
+#
+# ispmail_dkim_domains:
+#   - domain: "example.com"
+#     selector: "mail"          # diventa "mail._domainkey.example.com" nel DNS
+ispmail_dkim_domains: []
+
+ispmail_dkim_dir: "/var/lib/rspamd/dkim"
+ispmail_dkim_selector_map: "/etc/rspamd/dkim_selectors.map"

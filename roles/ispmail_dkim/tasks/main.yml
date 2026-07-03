@@ -1,0 +1,78 @@
+---
+- name: Verifica che ogni dominio DKIM abbia domain e selector
+  ansible.builtin.assert:
+    that:
+      - item.domain is defined
+      - item.selector is defined
+    fail_msg: >
+      Ogni voce di ispmail_dkim_domains richiede "domain" e "selector"
+      (vedi roles/ispmail_dkim/defaults/main.yml per un esempio).
+    quiet: true
+  loop: "{{ ispmail_dkim_domains }}"
+  loop_control:
+    label: "{{ item.domain | default('?') }}"
+
+- name: Crea la directory delle chiavi DKIM
+  ansible.builtin.file:
+    path: "{{ ispmail_dkim_dir }}"
+    state: directory
+    owner: _rspamd
+    group: _rspamd
+    mode: "0750"
+  when: ispmail_dkim_domains | length > 0
+
+# rspamadm dkim_keygen genera una NUOVA coppia di chiavi a ogni esecuzione:
+# "creates" evita di rigenerarla ai run successivi, perché invaliderebbe
+# il record DNS già pubblicato (i client smetterebbero di validare la
+# firma finché non si aggiorna anche il DNS). Il suo output su stdout è
+# il record DNS TXT da pubblicare: lo salviamo in un file .dns.txt
+# accanto alla chiave così resta consultabile anche quando "creates"
+# salta la generazione nei run successivi.
+- name: Genera la chiave DKIM di ogni dominio (una sola volta)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    umask 077
+    rspamadm dkim_keygen -s {{ item.selector }} -d {{ item.domain }} \
+      -k {{ ispmail_dkim_dir }}/{{ item.domain }}.{{ item.selector }}.key \
+      > {{ ispmail_dkim_dir }}/{{ item.domain }}.{{ item.selector }}.dns.txt
+  args:
+    executable: /bin/bash
+    creates: "{{ ispmail_dkim_dir }}/{{ item.domain }}.{{ item.selector }}.key"
+  loop: "{{ ispmail_dkim_domains }}"
+  loop_control:
+    label: "{{ item.domain }}"
+
+- name: Permessi corretti sulle chiavi DKIM
+  ansible.builtin.file:
+    path: "{{ ispmail_dkim_dir }}/{{ item.domain }}.{{ item.selector }}.key"
+    owner: _rspamd
+    group: _rspamd
+    mode: "0640"
+  loop: "{{ ispmail_dkim_domains }}"
+  loop_control:
+    label: "{{ item.domain }}"
+
+- name: Costruisci la mappa dei selettori DKIM di rspamd
+  ansible.builtin.template:
+    src: dkim_selectors.map.j2
+    dest: "{{ ispmail_dkim_selector_map }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: ispmail_dkim_domains | length > 0
+  notify: restart rspamd
+
+- name: Leggi il record DNS TXT generato per ogni dominio
+  ansible.builtin.slurp:
+    src: "{{ ispmail_dkim_dir }}/{{ item.domain }}.{{ item.selector }}.dns.txt"
+  register: ispmail_dkim_dns_slurp
+  loop: "{{ ispmail_dkim_domains }}"
+  loop_control:
+    label: "{{ item.domain }}"
+
+- name: "Riepilogo DKIM - pubblica questi record TXT nel DNS di ogni dominio"
+  ansible.builtin.debug:
+    msg: "{{ (item.content | b64decode).split('\n') }}"
+  loop: "{{ ispmail_dkim_dns_slurp.results }}"
+  loop_control:
+    label: "{{ item.item.domain }}"

@@ -39,3 +39,12 @@ role_mailserver: true
 #   - domain: "otherdomain.com"
 #     sni_hostname: "mail.otherdomain.com"
 #     cert_name: "otherdomain.com"   # default: = domain
+#
+# Chiavi DKIM per rspamd, una per dominio ospitato (ispmail.sh predispone
+# l'infrastruttura ma non le genera da solo). Generate una sola volta
+# (mai rigenerate ai run successivi, per non invalidare il DNS già
+# pubblicato): il riepilogo finale mostra il record TXT da pubblicare
+# per ognuna.
+# ispmail_dkim_domains:
+#   - domain: "example.com"
+#     selector: "mail"
