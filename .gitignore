@@ -5,9 +5,7 @@
 # (chiavi pubbliche, domini, IP, reti whitelistate...). Committa solo
 # le versioni *.example: copiale senza suffisso e personalizzale in locale.
 group_vars/all.yml
-group_vars/webservers.yml
 group_vars/mailservers.yml
-group_vars/dbservers.yml
 host_vars/
 inventory/hosts.ini
 

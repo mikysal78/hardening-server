@@ -10,9 +10,7 @@ ispmail.sh (Postfix + Dovecot + Roundcube + Rspamd) e database (MariaDB).
 01-hardening.yml                       # orchestrazione: common -> firewall/fail2ban -> ruoli di servizio
 02-mailserver.yml                        # playbook standalone: installa Postfix+Dovecot+Roundcube via ispmail.sh
 group_vars/all.yml.example         # tutte le opzioni di hardening, con commenti (copia -> all.yml)
-group_vars/webservers.yml.example  # role_webserver: true per il gruppo [webservers]
 group_vars/mailservers.yml.example # role_mailserver: true per il gruppo [mailservers]
-group_vars/dbservers.yml.example   # role_database: true per il gruppo [dbservers]
 inventory/hosts.ini.example         # inventario di esempio
 roles/
   common/      utenti, SSH, sysctl, moduli kernel, PAM, auditd, AppArmor,
@@ -36,9 +34,7 @@ IP/reti whitelistate, domini mail/web, host dell'inventario) sono in
 
 ```bash
 cp group_vars/all.yml.example group_vars/all.yml
-cp group_vars/webservers.yml.example group_vars/webservers.yml
 cp group_vars/mailservers.yml.example group_vars/mailservers.yml
-cp group_vars/dbservers.yml.example group_vars/dbservers.yml
 cp inventory/hosts.ini.example inventory/hosts.ini
 ```
 
@@ -111,9 +107,13 @@ web01 ansible_host=203.0.113.10
 mail01 ansible_host=203.0.113.11
 ```
 
-`group_vars/webservers.yml` e `group_vars/mailservers.yml` attivano già
-`role_webserver`/`role_mailserver` per quei gruppi. In alternativa puoi
-forzare i flag per singolo host in `host_vars/<nome-host>.yml`.
+`group_vars/mailservers.yml` attiva già `role_mailserver` per quel
+gruppo. Il ruolo `webserver` (nginx) non ha più un `group_vars/` dedicato
+(rimosso perché finora inutilizzato, per tenere puliti i file): se ti
+serve un web server nginx, crea `group_vars/webservers.yml` con
+`role_webserver: true` (stesso pattern di `mailservers.yml`), o imposta
+il flag direttamente in `host_vars/<nome-host>.yml`. Stesso discorso per
+`role_database` (ruolo `database`, MariaDB) e `group_vars/dbservers.yml`.
 
 Il ruolo `firewall` legge questi stessi flag per aprire automaticamente
 le porte giuste (80/443 per il web, 25/465/587/143/993/995 per la mail).

@@ -1,4 +1,0 @@
----
-# Qualsiasi host in [dbservers] nell'inventario riceve automaticamente
-# il ruolo database (MariaDB hardenizzato).
-role_database: true

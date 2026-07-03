@@ -1,4 +1,0 @@
----
-# Qualsiasi host in [webservers] nell'inventario riceve automaticamente
-# il ruolo webserver (nginx hardenizzato).
-role_webserver: true
