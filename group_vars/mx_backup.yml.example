@@ -1,0 +1,14 @@
+---
+# Qualsiasi host in [mx_backup] nell'inventario riceve automaticamente il
+# ruolo mx_backup (Postfix relay-only, backup MX). Disattivato di default:
+# nessun host è in questo gruppo finché non lo aggiungi.
+mx_backup_fqdn: "mx2.example.com"           # hostname di QUESTO server
+mx_backup_primary_host: "mail.example.com"  # server primario a cui fare da backup
+mx_backup_relay_domains:
+  - "example.com"
+
+firewall_allowed_tcp_ports: [25]   # SMTP, non coperto da role_mailserver qui
+
+# Se il certificato TLS non segue la convenzione standard
+# /etc/ssl/acme/<mx_backup_fqdn>.{fullchain.pem,key}:
+# mx_backup_cert_name: "mx2.example.com"

@@ -1,0 +1,34 @@
+---
+# =============================================================================
+# Server MX secondario (backup): riceve la posta per i domini indicati
+# quando il server primario (roles/ispmail) non è raggiungibile, e la mette
+# in coda per consegnarla lì appena torna su. Solo Postfix - nessun
+# Dovecot, nessuna mailbox locale: le caselle restano sul primario.
+#
+# Disattivato di default: nessun host è nel gruppo [mx_backup]
+# dell'inventario finché non ce lo aggiungi tu.
+#
+# Prerequisiti:
+#   - Esegui prima 01-hardening.yml sull'host.
+#   - Un certificato TLS per mx_backup_fqdn già emesso dal ruolo
+#     ansible-dns in /etc/ssl/acme/ (stessa convenzione di roles/ispmail).
+#   - Un record MX secondario (priorità più bassa, cioè numero più alto)
+#     per ogni dominio in mx_backup_relay_domains, che punti a
+#     mx_backup_fqdn.
+#   - Porta 25/tcp aperta sul firewall di questo host
+#     (firewall_allowed_tcp_ports: [25]).
+#
+# ATTENZIONE - backscatter: questa configurazione valida i destinatari
+# solo a livello di dominio, non di singola casella - vedi il commento in
+# roles/mx_backup/templates/main.cf.j2 per come stringerla.
+#
+# Uso:
+#   ansible-playbook 03-mx-backup.yml
+# (con mx_backup_fqdn/mx_backup_primary_host/mx_backup_relay_domains
+# impostati in group_vars/mx_backup.yml o host_vars/<host>.yml)
+# =============================================================================
+- name: Configura il server MX secondario
+  hosts: mx_backup
+  become: true
+  roles:
+    - mx_backup

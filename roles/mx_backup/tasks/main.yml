@@ -1,0 +1,103 @@
+---
+- name: Verifica che le variabili obbligatorie siano impostate
+  ansible.builtin.assert:
+    that:
+      - mx_backup_fqdn | length > 0
+      - mx_backup_primary_host | length > 0
+      - mx_backup_relay_domains | length > 0
+    fail_msg: >
+      Servono mx_backup_fqdn (hostname di questo server), mx_backup_primary_host
+      (hostname/IP del server primario) e mx_backup_relay_domains (almeno un
+      dominio per cui fare da backup) - vedi roles/mx_backup/defaults/main.yml.
+    quiet: true
+
+- name: Preconfigura debconf per un'installazione non interattiva di postfix
+  ansible.builtin.debconf:
+    name: postfix
+    question: "{{ item.q }}"
+    value: "{{ item.v }}"
+    vtype: "{{ item.t }}"
+  loop:
+    - { q: "postfix/main_mailer_type", v: "Internet Site", t: "select" }
+    - { q: "postfix/mailname", v: "{{ mx_backup_fqdn }}", t: "string" }
+
+- name: Installa Postfix
+  ansible.builtin.apt:
+    name: postfix
+    state: present
+    update_cache: true
+
+- name: Crea la directory del certificato se non esiste ancora (path standard certbot)
+  ansible.builtin.file:
+    path: "{{ mx_backup_cert_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: mx_backup_cert_fullchain_src != (mx_backup_cert_dir + '/fullchain.pem')
+
+# Link, non copia - stesso motivo di roles/ispmail: si aggiorna da solo
+# quando ansible-dns/acme.sh rinnova il certificato.
+- name: Collega il certificato dal path del ruolo ansible-dns
+  ansible.builtin.file:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    state: link
+    force: true
+  loop:
+    - { src: "{{ mx_backup_cert_fullchain_src }}", dest: "{{ mx_backup_cert_dir }}/fullchain.pem" }
+    - { src: "{{ mx_backup_cert_privkey_src }}", dest: "{{ mx_backup_cert_dir }}/privkey.pem" }
+  when: item.src != item.dest
+
+- name: Verifica che il certificato TLS sia già presente
+  ansible.builtin.stat:
+    path: "{{ mx_backup_cert_dir }}/{{ item }}"
+  register: mx_backup_cert_stat
+  loop:
+    - fullchain.pem
+    - privkey.pem
+
+- name: Blocca se manca il certificato TLS
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+    fail_msg: >
+      Manca {{ item.item }} in {{ mx_backup_cert_dir }}: esegui prima il ruolo
+      ansible-dns per {{ mx_backup_fqdn }}.
+    quiet: true
+  loop: "{{ mx_backup_cert_stat.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Distribuisci main.cf (relay-only, nessuna consegna locale)
+  ansible.builtin.template:
+    src: main.cf.j2
+    dest: /etc/postfix/main.cf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: reload postfix
+
+- name: Distribuisci la mappa di transport per i domini di backup
+  ansible.builtin.template:
+    src: transport_map.j2
+    dest: /etc/postfix/mx_backup_transport
+    owner: root
+    group: root
+    mode: "0644"
+  notify: rebuild mx_backup transport
+
+- name: Abilita e avvia Postfix
+  ansible.builtin.systemd:
+    name: postfix
+    enabled: true
+    state: started
+
+- name: "Promemoria: apri la porta 25 sul firewall di questo host"
+  ansible.builtin.debug:
+    msg: >
+      Ricordati di aggiungere 25 a firewall_allowed_tcp_ports per questo
+      host (non è coperto automaticamente da role_mailserver, che qui è
+      false), e di impostare un record MX secondario a priorità più bassa
+      su {{ mx_backup_relay_domains | join(', ') }} che punti a
+      {{ mx_backup_fqdn }}.

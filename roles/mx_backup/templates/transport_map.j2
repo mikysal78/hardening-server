@@ -1,0 +1,4 @@
+{{ ansible_managed | comment }}
+{% for domain in mx_backup_relay_domains %}
+{{ domain }}	smtp:[{{ mx_backup_primary_host }}]
+{% endfor %}

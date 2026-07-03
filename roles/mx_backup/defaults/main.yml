@@ -1,0 +1,23 @@
+---
+# MX secondario (backup) per i domini gestiti sul server primario
+# (roles/ispmail): riceve la posta e la mette in coda per il primario
+# quando questo non è raggiungibile. Solo Postfix - nessun Dovecot,
+# nessuna mailbox locale: la posta resta in coda al massimo
+# mx_backup_maximal_queue_lifetime, poi viene rimbalzata al mittente.
+mx_backup_fqdn: ""                # hostname di QUESTO server secondario
+mx_backup_primary_host: ""        # hostname/IP del server primario (destinazione del relay)
+mx_backup_relay_domains: []       # domini per cui fare da backup, es. ["ninux-nnxx.it"]
+
+# --- Certificato TLS -----------------------------------------------------
+# Stessa convenzione "piatta" di roles/ispmail: /etc/ssl/acme/<nome>.{fullchain.pem,key},
+# emesso dal ruolo ansible-dns. Va fatto per questo hostname PRIMA di
+# eseguire questo ruolo.
+mx_backup_cert_name: "{{ mx_backup_fqdn }}"
+mx_backup_cert_dir: "/etc/letsencrypt/live/{{ mx_backup_fqdn }}"
+mx_backup_cert_fullchain_src: "/etc/ssl/acme/{{ mx_backup_cert_name }}.fullchain.pem"
+mx_backup_cert_privkey_src: "/etc/ssl/acme/{{ mx_backup_cert_name }}.key"
+
+# Quanto tempo tenere la mail in coda prima di rimbalzarla al mittente,
+# se il primario resta irraggiungibile per tutto quel periodo.
+mx_backup_maximal_queue_lifetime: "3d"
+mx_backup_bounce_queue_lifetime: "3d"

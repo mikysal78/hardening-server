@@ -6,6 +6,7 @@
 # le versioni *.example: copiale senza suffisso e personalizzale in locale.
 group_vars/all.yml
 group_vars/mailservers.yml
+group_vars/mx_backup.yml
 host_vars/
 inventory/hosts.ini
 

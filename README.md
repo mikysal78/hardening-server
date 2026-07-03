@@ -7,10 +7,12 @@ ispmail.sh (Postfix + Dovecot + Roundcube + Rspamd) e database (MariaDB).
 ## Struttura
 
 ```
-01-hardening.yml                       # orchestrazione: common -> firewall/fail2ban -> ruoli di servizio
-02-mailserver.yml                        # playbook standalone: installa Postfix+Dovecot+Roundcube via ispmail.sh
+01-hardening.yml                   # orchestrazione: common -> firewall/fail2ban -> ruoli di servizio
+02-mailserver.yml                  # playbook standalone: installa Postfix+Dovecot+Roundcube via ispmail.sh
+03-mx-backup.yml                   # playbook standalone opzionale: MX secondario (backup) relay-only
 group_vars/all.yml.example         # tutte le opzioni di hardening, con commenti (copia -> all.yml)
 group_vars/mailservers.yml.example # role_mailserver: true per il gruppo [mailservers]
+group_vars/mx_backup.yml.example   # variabili del gruppo [mx_backup] (opzionale)
 inventory/hosts.ini.example         # inventario di esempio
 roles/
   common/      utenti, SSH, sysctl, moduli kernel, PAM, auditd, AppArmor,
@@ -23,6 +25,7 @@ roles/
   ispmail/     scarica ed esegue ispmail.sh (usato da 02-mailserver.yml)
   ispmail_admin/ pannello web opzionale per domini/mailbox/alias (usato da 02-mailserver.yml)
   ispmail_sni/ certificati TLS dedicati per domini extra via SNI (usato da 02-mailserver.yml)
+  mx_backup/   Postfix relay-only per un MX secondario (usato da 03-mx-backup.yml, opzionale)
 ```
 
 ## Setup iniziale (file privati)
@@ -285,6 +288,47 @@ rinnovo del certificato lato `ansible-dns`. Rilancia `ansible-playbook
 02-mailserver.yml` dopo ogni rinnovo di questi domini extra, oppure aggiungi
 una chiamata a questo ruolo nel `reloadcmd`/deploy script di
 `ansible-dns` per quei domini specifici.
+
+## MX secondario / backup (03-mx-backup.yml, opzionale)
+
+`03-mx-backup.yml` configura un **secondo server**, separato dal mail
+server principale, come **backup MX**: riceve la posta per i domini
+indicati quando il primario non è raggiungibile, e la mette in coda per
+consegnarla lì appena torna su. È solo Postfix — **nessun Dovecot,
+nessuna mailbox locale**: le caselle restano sul server primario.
+
+Disattivato di default: finché non aggiungi un host al gruppo
+`[mx_backup]` dell'inventario, questo playbook non fa nulla.
+
+Per attivarlo:
+1. Aggiungi l'host in `inventory/hosts.ini` sotto `[mx_backup]`.
+2. Esegui prima `01-hardening.yml` su quell'host.
+3. Fai emettere un certificato per il suo hostname dal ruolo
+   `ansible-dns` (stessa convenzione di `roles/ispmail`).
+4. In `group_vars/mx_backup.yml` (copiala da `.example`) imposta:
+   ```yaml
+   mx_backup_fqdn: "mx2.tuodominio.it"          # hostname di QUESTO server
+   mx_backup_primary_host: "mail.tuodominio.it" # il server primario
+   mx_backup_relay_domains:
+     - "tuodominio.it"
+   firewall_allowed_tcp_ports: [25]
+   ```
+5. Aggiungi un record MX secondario (priorità/numero più alto, quindi
+   meno prioritario) su ogni dominio in `mx_backup_relay_domains`, che
+   punti a `mx_backup_fqdn`.
+6. `ansible-playbook 03-mx-backup.yml`
+
+**Backscatter da conoscere**: questa configurazione valida i
+destinatari solo a livello di **dominio** (`relay_domains`), non di
+singola casella — accetta quindi temporaneamente mail anche per
+indirizzi inesistenti, che il primario poi rifiuta in fase di relay,
+generando un bounce da questo server verso il mittente (rischio
+backscatter se il mittente è falsificato, come spesso accade con lo
+spam). Per una validazione più stretta serve una `relay_recipient_maps`
+con i soli recipient validi (mappa statica sincronizzata dal primario,
+o query diretta al suo DB aperta solo a questo host) — non inclusa di
+default per tenere il setup semplice; il commento in
+`roles/mx_backup/templates/main.cf.j2` indica dove aggiungerla.
 
 ## Whitelist fail2ban (IP/reti mai bannati)
 

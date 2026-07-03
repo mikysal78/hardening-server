@@ -1,0 +1,10 @@
+---
+- name: postmap transport map
+  ansible.builtin.command: postmap /etc/postfix/mx_backup_transport
+  listen: "rebuild mx_backup transport"
+
+- name: reload postfix
+  ansible.builtin.service:
+    name: postfix
+    state: reloaded
+  listen: "rebuild mx_backup transport"
