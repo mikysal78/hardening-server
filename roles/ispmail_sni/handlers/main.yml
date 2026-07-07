@@ -1,6 +1,10 @@
 ---
 - name: postmap sni map
-  ansible.builtin.command: "postmap {{ ispmail_sni_map }}"
+  # -F è obbligatorio per tls_server_sni_maps: incorpora chiave+catena in
+  # base64 nella mappa; senza, Postfix trova solo il path del file, fallisce
+  # il decode ("malformed BASE64 value") e abortisce l'handshake TLS dei
+  # client che presentano quel SNI.
+  ansible.builtin.command: "postmap -F {{ ispmail_sni_map }}"
   listen: "rebuild postfix sni map"
 
 - name: reload postfix
