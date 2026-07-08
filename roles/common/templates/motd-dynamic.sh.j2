@@ -59,8 +59,18 @@ svc_status nftables "nftables"
 {% endif %}
 {% if harden_fail2ban | default(true) %}
 svc_status fail2ban "fail2ban"
-BANNED=$(fail2ban-client status sshd 2>/dev/null | grep "Banned IP list" | sed 's/.*://' | wc -w)
-[ "${BANNED:-0}" -gt 0 ] 2>/dev/null && echo -e "  ${Y}⚠ fail2ban sshd:${N} ${BANNED} IP bannati"
+# IP bannati, jail per jail (gli script di update-motd.d girano come root
+# via pam_motd, quindi fail2ban-client è interrogabile). Se c'è almeno un
+# ban, in coda il promemoria del comando per sbloccare.
+F2B_HINT=""
+for JAIL in $(fail2ban-client status 2>/dev/null | grep "Jail list" | sed 's/.*:\s*//; s/,//g'); do
+  BANNED_IPS=$(fail2ban-client status "$JAIL" 2>/dev/null | grep "Banned IP list" | sed 's/.*:\s*//')
+  if [ -n "${BANNED_IPS// /}" ]; then
+    echo -e "  ${Y}⚠ fail2ban ${JAIL}:${N} ${R}${BANNED_IPS}${N}"
+    F2B_HINT="$JAIL"
+  fi
+done
+[ -n "$F2B_HINT" ] && echo -e "    ${Y}per sbloccare:${N} fail2ban-client set <jail> unbanip <IP>  (es. jail: ${F2B_HINT})"
 {% endif %}
 {% if harden_auditd | default(true) %}
 svc_status auditd "auditd"
