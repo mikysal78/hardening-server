@@ -1,0 +1,25 @@
+<?php
+{{ ansible_managed | comment('c') }}
+
+// Le password CardDAV (= password della mailbox) restano cifrate nel DB
+// di Roundcube con la chiave di sessione dell'utente
+$prefs['_GLOBAL']['pwstore_scheme'] = 'encrypted';
+
+// Rubrica preconfigurata per ogni utente: la personale viene scoperta
+// sotto il suo principal, la condivisa del suo dominio è agganciata come
+// rubrica extra (non è scopribile: appartiene a shared@dominio)
+$prefs['radicale'] = [
+    'accountname'    => 'Rubrica',
+    'discovery_url'  => '{{ ispmail_carddav_base_url }}/%u/',
+    'username'       => '%u',
+    'password'       => '%p',
+    'fixed'          => ['username', 'password', 'discovery_url'],
+    'hide'           => false,
+    'refresh_time'   => '00:10:00',
+    'extra_addressbooks' => [
+        [
+            'url'   => '{{ ispmail_carddav_base_url }}/shared@%d/contacts/',
+            'fixed' => ['url'],
+        ],
+    ],
+];

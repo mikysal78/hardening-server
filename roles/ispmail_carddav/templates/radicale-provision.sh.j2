@@ -1,0 +1,32 @@
+#!/bin/bash
+{{ ansible_managed | comment }}
+# Crea le collection Radicale mancanti leggendo il database di ispmail:
+# una rubrica personale per ogni mailbox e una condivisa per ogni dominio
+# (di proprietà dell'utente fittizio "shared@dominio"; i permessi per gli
+# utenti reali del dominio sono in /etc/radicale/rights).
+# Radicale rilegge lo storage a ogni richiesta: niente restart necessario.
+set -euo pipefail
+
+COLLECTIONS=/var/lib/radicale/collections
+ROOT=$COLLECTIONS/collection-root
+
+# Radicale (utente "radicale") deve poter scrivere qui il suo lock file
+install -d -o radicale -g radicale -m 700 "$COLLECTIONS" "$ROOT"
+
+make_book() { # $1=proprietario  $2=nome collection  $3=displayname
+  local dir="$ROOT/$1/$2"
+  [ -d "$dir" ] && return 0
+  install -d -o radicale -g radicale -m 700 "$ROOT/$1" "$dir"
+  printf '{"D:displayname": "%s", "tag": "VADDRESSBOOK"}\n' "$3" > "$dir/.Radicale.props"
+  chown radicale:radicale "$dir/.Radicale.props"
+  chmod 600 "$dir/.Radicale.props"
+  echo "creata rubrica $1/$2"
+}
+
+mysql -N mailserver -e 'SELECT email FROM virtual_users' | while read -r utente; do
+  make_book "$utente" contacts "Rubrica personale"
+done
+
+mysql -N mailserver -e 'SELECT name FROM virtual_domains' | while read -r dominio; do
+  make_book "shared@$dominio" contacts "Condivisa ($dominio)"
+done

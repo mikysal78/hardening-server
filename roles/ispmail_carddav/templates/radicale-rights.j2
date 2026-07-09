@@ -1,0 +1,25 @@
+{{ ansible_managed | comment }}
+# Ogni utente vede la propria radice e ha pieno accesso alle proprie rubriche
+
+[principal]
+user: .+
+collection: {user}
+permissions: R
+
+[personal]
+user: .+
+collection: {user}/[^/]+
+permissions: rw
+
+# Rubrica condivisa: gli utenti di un dominio ({0} = il dominio estratto
+# dalla regex su user) leggono e scrivono le collection di "shared@dominio"
+
+[shared-principal]
+user: .+@(.+)
+collection: shared@{0}
+permissions: R
+
+[shared-books]
+user: .+@(.+)
+collection: shared@{0}/[^/]+
+permissions: rw

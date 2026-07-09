@@ -46,6 +46,12 @@
 # resolver ricorsivo locale (necessario per Spamhaus) - vedi
 # roles/ispmail_postscreen/defaults/main.yml. Rieseguibile da solo con
 # --tags postscreen.
+#
+# Opzionale: ispmail_carddav_enabled=true installa Radicale (CardDAV) con
+# una rubrica personale per mailbox e una condivisa per dominio, integrate
+# in Roundcube via RCMCardDAV e raggiungibili dai client esterni su
+# https://<ispmail_fqdn>/radicale/ - vedi roles/ispmail_carddav/defaults/
+# main.yml. Rieseguibile da solo con --tags carddav.
 # =============================================================================
 - name: Installa il mail server con ispmail.sh
   hosts: mailservers
@@ -61,3 +67,6 @@
     - role: ispmail_postscreen
       when: ispmail_postscreen_enabled | default(false)
       tags: [postscreen]
+    - role: ispmail_carddav
+      when: ispmail_carddav_enabled | default(false)
+      tags: [carddav]

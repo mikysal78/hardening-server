@@ -1,0 +1,24 @@
+{{ ansible_managed | comment }}
+[server]
+# Solo loopback: l'accesso esterno passa dal proxy Apache in HTTPS
+hosts = 127.0.0.1:5232
+
+[auth]
+# Le credenziali sono quelle della mailbox: Radicale le verifica facendo
+# un login IMAP su Dovecot (in chiaro ma solo su loopback, come Roundcube)
+type = imap
+imap_host = 127.0.0.1:143
+imap_security = none
+# Evita un login IMAP per ogni singola richiesta DAV
+cache_logins = true
+
+[rights]
+type = from_file
+file = /etc/radicale/rights
+
+[storage]
+filesystem_folder = /var/lib/radicale/collections
+
+[web]
+# Niente interfaccia web: le rubriche le crea radicale-provision
+type = none

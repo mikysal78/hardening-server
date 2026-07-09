@@ -48,3 +48,10 @@ role_mailserver: true
 # ispmail_dkim_domains:
 #   - domain: "example.com"
 #     selector: "mail"
+#
+# CardDAV con Radicale + plugin RCMCardDAV in Roundcube: rubrica personale
+# per ogni mailbox e rubrica condivisa per ogni dominio ospitato, con le
+# stesse credenziali della mailbox. I client esterni (smartphone,
+# Thunderbird) usano https://<ispmail_fqdn>/radicale/ - vedi
+# roles/ispmail_carddav/defaults/main.yml.
+# ispmail_carddav_enabled: true

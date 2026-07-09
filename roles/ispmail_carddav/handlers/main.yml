@@ -1,0 +1,15 @@
+---
+- name: restart radicale
+  ansible.builtin.systemd:
+    name: radicale
+    state: restarted
+
+- name: restart apache2
+  ansible.builtin.systemd:
+    name: apache2
+    state: restarted
+
+- name: reload apache2
+  ansible.builtin.systemd:
+    name: apache2
+    state: reloaded

@@ -1,0 +1,95 @@
+---
+- name: Installa Radicale (server CardDAV)
+  ansible.builtin.apt:
+    name: radicale
+    state: present
+    update_cache: true
+
+- name: Configura Radicale (bind su loopback, credenziali IMAP, permessi per dominio)
+  ansible.builtin.template:
+    src: radicale-config.j2
+    dest: /etc/radicale/config
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart radicale
+
+- name: Definisci i permessi delle collection (rubrica personale + condivisa di dominio)
+  ansible.builtin.template:
+    src: radicale-rights.j2
+    dest: /etc/radicale/rights
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart radicale
+
+- name: Installa lo script che crea le rubriche mancanti
+  ansible.builtin.template:
+    src: radicale-provision.sh.j2
+    dest: /usr/local/sbin/radicale-provision
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Crea le rubriche per gli utenti e i domini attuali
+  ansible.builtin.command: /usr/local/sbin/radicale-provision
+  register: ispmail_carddav_provision
+  changed_when: ispmail_carddav_provision.stdout | length > 0
+
+# Gli utenti/domini aggiunti in seguito (es. da ISPmail Admin) ottengono la
+# rubrica alla prossima esecuzione notturna
+- name: Ricrea le rubriche mancanti ogni notte
+  ansible.builtin.cron:
+    name: "Crea le rubriche CardDAV mancanti"
+    special_time: daily
+    user: root
+    job: /usr/local/sbin/radicale-provision
+
+- name: Abilita e avvia Radicale
+  ansible.builtin.systemd:
+    name: radicale
+    enabled: true
+    state: started
+
+- name: Abilita mod_headers di Apache (serve per X-Script-Name verso Radicale)
+  ansible.builtin.command: a2enmod -q headers
+  args:
+    creates: /etc/apache2/mods-enabled/headers.load
+  notify: restart apache2
+
+- name: Esponi Radicale su {{ ispmail_carddav_base_url }} (client esterni via HTTPS)
+  ansible.builtin.blockinfile:
+    path: /etc/apache2/sites-available/000-default-le-ssl.conf
+    marker: "        # {mark} ANSIBLE MANAGED - proxy verso Radicale (CardDAV)"
+    insertbefore: '^</VirtualHost>'
+    block: |2
+              RewriteEngine On
+              RewriteRule ^/radicale$ /radicale/ [R,L]
+              <Location "/radicale/">
+                      ProxyPass http://127.0.0.1:5232/ retry=0
+                      ProxyPassReverse http://127.0.0.1:5232/
+                      RequestHeader set X-Script-Name /radicale
+              </Location>
+  notify: reload apache2
+
+- name: Scarica e installa il plugin RCMCardDAV in Roundcube
+  ansible.builtin.unarchive:
+    src: "https://github.com/mstilkerich/rcmcarddav/releases/download/v{{ ispmail_carddav_rcmcarddav_version }}/carddav-v{{ ispmail_carddav_rcmcarddav_version }}.tar.gz"
+    dest: /var/lib/roundcube/plugins
+    remote_src: true
+    creates: /var/lib/roundcube/plugins/carddav/carddav.php
+
+- name: Configura RCMCardDAV (rubrica personale + condivisa preconfigurate per ogni utente)
+  ansible.builtin.template:
+    src: rcmcarddav-config.inc.php.j2
+    dest: /var/lib/roundcube/plugins/carddav/config.inc.php
+    owner: root
+    group: www-data
+    mode: "0640"
+
+- name: Attiva il plugin carddav in Roundcube
+  ansible.builtin.blockinfile:
+    path: /etc/roundcube/config.inc.php
+    marker: "// {mark} ANSIBLE MANAGED - plugin carddav"
+    block: |
+      $config['plugins'][] = 'carddav';
