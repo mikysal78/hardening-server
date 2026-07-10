@@ -49,6 +49,11 @@ role_mailserver: true
 #   - domain: "example.com"
 #     selector: "mail"
 #
+# Quota di default per casella (sintassi Dovecot). Vale per le caselle con
+# quota=0 nel DB; un valore in byte nella colonna virtual_users.quota (via
+# ISPmail Admin) la sovrascrive per la singola casella. Default: 5G.
+# ispmail_quota_default: "2G"
+#
 # CardDAV/CalDAV con Radicale + plugin RCMCardDAV in Roundcube: rubrica e
 # calendario personali per ogni mailbox, più rubrica e calendario condivisi
 # per ogni dominio ospitato, con le stesse credenziali della mailbox. I
