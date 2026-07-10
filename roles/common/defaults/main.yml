@@ -24,6 +24,15 @@ harden_lock_root_password: true
 harden_root_ssh_key_login: false
 harden_root_pubkey: "{{ harden_admin_pubkey }}"
 
+# Gestione di /etc/hosts (opt-in: di default il file non viene toccato).
+# Le voci sono righe complete "IP nomi..."; usa SOLO indirizzi stabili
+# (statici), mai IPv6 SLAAC che cambiano al cambio di MAC della VM.
+common_manage_hosts: false
+common_hosts_entries: []
+# es.:
+#   - "10.0.0.11        mail.example.com mail"
+#   - "2001:db8::11     mail.example.com mail"
+
 harden_sysctl: true
 sysctl_enable_ip_forward: false
 

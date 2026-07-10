@@ -11,6 +11,14 @@
 - name: Includi task - gestione utenti
   ansible.builtin.include_tasks: users.yml
 
+- name: Includi task - /etc/hosts
+  ansible.builtin.include_tasks:
+    file: hosts.yml
+    apply:
+      tags: [hosts]
+  when: common_manage_hosts | default(false)
+  tags: [hosts]
+
 - name: Includi task - hardening SSH
   ansible.builtin.include_tasks: ssh.yml
   when: harden_ssh | default(true)
