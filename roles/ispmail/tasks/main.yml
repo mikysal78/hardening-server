@@ -186,6 +186,16 @@
     mode: "0755"
   tags: [benvenuto]
 
+- name: Imposta la quota di default per casella ({{ ispmail_quota_default }})
+  ansible.builtin.template:
+    src: dovecot-quota-default.conf.j2
+    dest: /etc/dovecot/conf.d/99-zz-quota-default.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart dovecot
+  tags: [quota]
+
 # ispmail.sh sottoscrive/crea in automatico solo Junk e Trash: questo drop-in
 # fa lo stesso per Bozze/Inviata/Archivio (vedi commento nel template).
 - name: Auto-crea le cartelle IMAP standard mancanti (Drafts, Sent, Archive)

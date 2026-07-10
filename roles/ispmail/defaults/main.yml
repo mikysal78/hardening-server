@@ -25,6 +25,13 @@ ispmail_log_file: "/root/ispmail-install-{{ ispmail_fqdn }}.log"
 # server. La directory NON deve mai finire in un repo pubblico.
 ispmail_local_secrets_dir: "{{ playbook_dir }}/secrets"
 
+# Quota di default per casella (sintassi Dovecot: 3G, 500M, ...). Vale per
+# tutte le caselle con quota=0 nel DB (il valore in byte nella colonna
+# virtual_users.quota, impostabile da ISPmail Admin, la sovrascrive per la
+# singola casella). ispmail.sh mette 5G: questo drop-in vince perché viene
+# letto dopo (ordine alfabetico in conf.d).
+ispmail_quota_default: "5G"
+
 # Mittente della mail di benvenuto inviata con "ispmail-benvenuto
 # utente@dominio" (default: postmaster del dominio dell'FQDN, es.
 # postmaster@example.com per mail.example.com)

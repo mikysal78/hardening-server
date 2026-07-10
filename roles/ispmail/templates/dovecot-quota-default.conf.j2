@@ -1,0 +1,5 @@
+{{ ansible_managed | comment }}
+# Sovrascrive il quota_storage_size = 5G di 99-ispmail-quota.conf (questo
+# file viene letto dopo, ordine alfabetico). Le caselle con quota > 0 nel
+# DB mailserver usano invece il proprio valore (in byte).
+quota_storage_size = {{ ispmail_quota_default }}
