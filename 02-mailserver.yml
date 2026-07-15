@@ -61,6 +61,7 @@
     - ispmail
     - role: ispmail_admin
       when: ispmail_admin_enabled | default(false)
+      tags: [admin]
     - role: ispmail_sni
       when: ispmail_sni_domains | default([]) | length > 0
     - role: ispmail_dkim

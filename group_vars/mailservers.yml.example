@@ -25,10 +25,12 @@ role_mailserver: true
 # Pannello web opzionale per gestire domini/mailbox/alias, su vhost dedicato
 # (non un path su ispmail_fqdn - vedi README per i compromessi: download
 # solo HTTP, nessun checksum pubblicato). Raggiungibile solo dalle reti in
-# ispmail_admin_allow_networks (default in roles/ispmail_admin/defaults):
+# ispmail_admin_allow_networks (default in roles/ispmail_admin/defaults).
+# Se il vhost ha un record AAAA includi anche il prefisso IPv6 della LAN,
+# altrimenti i client dual-stack ricevono 403 (il browser preferisce IPv6):
 # ispmail_admin_enabled: true
 # ispmail_admin_fqdn: "ispmail.example.com"
-# ispmail_admin_allow_networks: ["203.0.113.0/24"]
+# ispmail_admin_allow_networks: ["203.0.113.0/24", "2001:db8::/64"]
 #
 # Domini ospitati che devono presentare un certificato TLS diverso da
 # ispmail_fqdn quando un client si connette al loro hostname (SNI), invece
